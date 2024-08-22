@@ -1,8 +1,5 @@
 pipeline {
   agent any 
-  tools {
-    maven 'Maven'
-  }
   stages {
     stage ('Initialize') {
       steps
@@ -17,3 +14,6 @@ stage('OWASP Dependency-Check Vulnerabilities') {
         dependencyCheckPublisher pattern: 'dependency-check-report.xml'
       }
     }
+    }
+  }
+}

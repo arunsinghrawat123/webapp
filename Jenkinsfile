@@ -1,68 +1,60 @@
 pipeline {
-  agent any 
-  tools {
-    maven 'Maven'
-  }
-  stages {
-    stage ('Initialize') {
-      steps {
-        sh '''
-                    echo "PATH = ${PATH}"
-                    echo "M2_HOME = ${M2_HOME}"
-            ''' 
-      }
-    }
-    
-    stage ('Check-Git-Secrets') {
-      steps {
-        sh 'rm trufflehog || true'
-        sh 'docker run gesellix/trufflehog --json https://github.com/cehkunal/webapp.git > trufflehog'
-        sh 'cat trufflehog'
-      }
-    }
-    
-    stage ('Source Composition Analysis') {
-      steps {
-         sh 'rm owasp* || true'
-         sh 'wget "https://raw.githubusercontent.com/cehkunal/webapp/master/owasp-dependency-check.sh" '
-         sh 'chmod +x owasp-dependency-check.sh'
-         sh 'bash owasp-dependency-check.sh'
-         sh 'cat /var/lib/jenkins/OWASP-Dependency-Check/reports/dependency-check-report.xml'
-        
-      }
-    }
-    
-    stage ('SAST') {
-      steps {
-        withSonarQubeEnv('sonar') {
-          sh 'mvn sonar:sonar'
-          sh 'cat target/sonar/report-task.txt'
-        }
-      }
-    }
-    
-    stage ('Build') {
-      steps {
-      sh 'mvn clean package'
-       }
-    }
-    
-    stage ('Deploy-To-Tomcat') {
+    agent any
+
+    stages {
+        stage('Checkout') {
             steps {
-           sshagent(['tomcat']) {
-                sh 'scp -o StrictHostKeyChecking=no target/*.war ubuntu@13.232.202.25:/prod/apache-tomcat-8.5.39/webapps/webapp.war'
-              }      
-           }       
-    }
-    
-    
-    stage ('DAST') {
-      steps {
-        sshagent(['zap']) {
-         sh 'ssh -o  StrictHostKeyChecking=no ubuntu@13.232.158.44 "docker run -t owasp/zap2docker-stable zap-baseline.py -t http://13.232.202.25:8080/webapp/" || true'
+                // Checkout your code from version control
+                checkout scm
+            }
         }
-      }
+
+        stage('Install Dependencies') {
+            steps {
+                // Install dependencies (adjust as necessary for your project)
+                sh 'mvn clean install'  // For Maven projects
+                // or
+                // sh 'npm install'      // For Node.js projects
+            }
+        }
+
+        stage('Run Dependency-Check') {
+            steps {
+                // Run OWASP Dependency-Check
+                // Adjust the path to the Dependency-Check CLI tool if needed
+                sh 'dependency-check --project MyProject --scan . --format HTML --out dependency-check-report.html'
+            }
+        }
+
+        stage('Publish Report') {
+            steps {
+                // Archive the report as an artifact
+                archiveArtifacts artifacts: 'dependency-check-report.html', allowEmptyArchive: true
+            }
+        }
+
+        stage('Post-build Actions') {
+            steps {
+                // Optionally, you can add some post-build actions
+                // For example, sending notifications or triggering other jobs
+            }
+        }
     }
-    
-  }
+
+    post {
+        always {
+            // Clean up workspace or perform other actions
+            cleanWs()
+        }
+
+        success {
+            // Actions on successful build
+            echo 'Build and scan completed successfully.'
+        }
+
+        failure {
+            // Actions on failed build
+            echo 'Build or scan failed.'
+        }
+    }
 }

@@ -1,25 +1,60 @@
-node {
-    def mvnHome
-    stage('Preparation') { // for display purposes
-        // Get some code from a GitHub repository
-        git 'https://github.com/jglick/simple-maven-project-with-tests.git'
-        // Get the Maven tool.
-        // ** NOTE: This 'M3' Maven tool must be configured
-        // **       in the global configuration.
-        mvnHome = tool 'M3'
-    }
-    stage('Build') {
-        // Run the maven build
-        withEnv(["MVN_HOME=$mvnHome"]) {
-            if (isUnix()) {
-                sh '"$MVN_HOME/bin/mvn" -Dmaven.test.failure.ignore clean package'
-            } else {
-                bat(/"%MVN_HOME%\bin\mvn" -Dmaven.test.failure.ignore clean package/)
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout your code from version control
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                // Install dependencies (adjust as necessary for your project)
+                sh 'mvn clean install'  // For Maven projects
+                // or
+                // sh 'npm install'      // For Node.js projects
+            }
+        }
+
+        stage('Run Dependency-Check') {
+            steps {
+                // Run OWASP Dependency-Check
+                // Adjust the path to the Dependency-Check CLI tool if needed
+                sh 'dependency-check --project MyProject --scan . --format HTML --out dependency-check-report.html'
+            }
+        }
+
+        stage('Publish Report') {
+            steps {
+                // Archive the report as an artifact
+                archiveArtifacts artifacts: 'dependency-check-report.html', allowEmptyArchive: true
+            }
+        }
+
+        stage('Post-build Actions') {
+            steps {
+                // Optionally, you can add some post-build actions
+                // For example, sending notifications or triggering other jobs
             }
         }
     }
-    stage('Results') {
-        junit '**/target/surefire-reports/TEST-*.xml'
-        archiveArtifacts 'target/*.jar'
+
+    post {
+        always {
+            // Clean up workspace or perform other actions
+            cleanWs()
+        }
+
+        success {
+            // Actions on successful build
+            echo 'Build and scan completed successfully.'
+        }
+
+        failure {
+            // Actions on failed build
+            echo 'Build or scan failed.'
+        }
     }
 }

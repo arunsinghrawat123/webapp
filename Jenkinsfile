@@ -1,9 +1,6 @@
 pipeline {
   agent any 
-  stages {
-    stage ('Initialize') {
-      steps
-stage('OWASP Dependency-Check Vulnerabilities') {
+  stage('OWASP Dependency-Check Vulnerabilities') {
       steps {
         dependencyCheck additionalArguments: ''' 
                     -o './'
@@ -14,6 +11,4 @@ stage('OWASP Dependency-Check Vulnerabilities') {
         dependencyCheckPublisher pattern: 'dependency-check-report.xml'
       }
     }
-    }
-  }
 }

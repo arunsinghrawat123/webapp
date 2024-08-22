@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Define any environment variables here
-        // Example: MAVEN_HOME = '/usr/local/maven'
+        // Example: MAVEN_HOME = 'C:\apache-maven-3.9.8'
     }
 
     stages {

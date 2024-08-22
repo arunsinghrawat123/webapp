@@ -1,42 +1,44 @@
 pipeline {
     agent any
 
+    environment {
+        // Define any environment variables here
+        // Example: MAVEN_HOME = '/usr/local/maven'
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                // Checkout your code from version control
+                // Checkout code from SCM
                 checkout scm
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Build') {
             steps {
-                // Install dependencies (adjust as necessary for your project)
-                sh 'mvn clean install'  // For Maven projects
-                // or
-                // sh 'npm install'      // For Node.js projects
+                // Build your project (for Maven projects)
+                sh 'mvn clean install'
             }
         }
 
-        stage('Run Dependency-Check') {
+        stage('Test') {
             steps {
-                // Run OWASP Dependency-Check
-                // Adjust the path to the Dependency-Check CLI tool if needed
+                // Run tests (this step is included in the build stage for Maven)
+                sh 'mvn test'
+            }
+        }
+
+        stage('Dependency Check') {
+            steps {
+                // Run OWASP Dependency-Check (adjust the path and options as needed)
                 sh 'dependency-check --project MyProject --scan . --format HTML --out dependency-check-report.html'
             }
         }
 
         stage('Publish Report') {
             steps {
-                // Archive the report as an artifact
+                // Archive the Dependency-Check report
                 archiveArtifacts artifacts: 'dependency-check-report.html', allowEmptyArchive: true
-            }
-        }
-
-        stage('Post-build Actions') {
-            steps {
-                // Optionally, you can add some post-build actions
-                // For example, sending notifications or triggering other jobs
             }
         }
     }
@@ -49,12 +51,12 @@ pipeline {
 
         success {
             // Actions on successful build
-            echo 'Build and scan completed successfully.'
+            echo 'Build and analysis completed successfully.'
         }
 
         failure {
             // Actions on failed build
-            echo 'Build or scan failed.'
+            echo 'Build or analysis failed.'
         }
     }
 }

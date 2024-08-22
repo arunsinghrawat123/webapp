@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        // Define any environment variables here
-        // Example: MAVEN_HOME = 'C:\apache-maven-3.9.8'
+        // Set any environment variables required for Dependency-Check
+        // For example: DEP_CHECK_HOME = 'C:\dependency-check'
     }
 
     stages {
@@ -16,22 +16,20 @@ pipeline {
 
         stage('Build') {
             steps {
-                // Build your project (for Maven projects)
+                // Build your project (assuming Maven here)
                 sh 'mvn clean install'
             }
         }
 
-        stage('Test') {
+        stage('Run Dependency-Check') {
             steps {
-                // Run tests (this step is included in the build stage for Maven)
-                sh 'mvn test'
-            }
-        }
+                script {
+                    // Set up the Dependency-Check command
+                    def dependencyCheckCommand = 'dependency-check --project webapp --scan . --format HTML --out dependency-check-report.html'
 
-        stage('Dependency Check') {
-            steps {
-                // Run OWASP Dependency-Check (adjust the path and options as needed)
-                sh 'dependency-check --project MyProject --scan . --format HTML --out dependency-check-report.html'
+                    // Run OWASP Dependency-Check
+                    sh dependencyCheckCommand
+                }
             }
         }
 
@@ -51,12 +49,12 @@ pipeline {
 
         success {
             // Actions on successful build
-            echo 'Build and analysis completed successfully.'
+            echo 'Build and Dependency-Check completed successfully.'
         }
 
         failure {
             // Actions on failed build
-            echo 'Build or analysis failed.'
+            echo 'Build or Dependency-Check failed.'
         }
     }
 }
